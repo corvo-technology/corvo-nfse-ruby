@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "corvo-nfse"
+require "corvo_nfse"
 require "webmock/rspec"
 
 WebMock.disable_net_connect!(allow_localhost: false)
