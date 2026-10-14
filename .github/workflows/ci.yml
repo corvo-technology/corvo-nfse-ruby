@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: rspec (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.2", "3.3", "3.4"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run unit + spec suite
+        run: bundle exec rspec
+      # Contract tests (spec/contract) auto-skip unless the environment is
+      # configured. To run them against a live environment, add a gated job that
+      # exports CORVO_API_KEY / CORVO_BASE_URL from repository secrets, e.g.:
+      #
+  # contract:
+  #   if: github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ruby/setup-ruby@v1
+  #       with: { ruby-version: "3.4", bundler-cache: true }
+  #     - run: bundle exec rspec spec/contract
+  #       env:
+  #         CORVO_API_KEY: ${{ secrets.CORVO_API_KEY }}
+  #         CORVO_BASE_URL: ${{ secrets.CORVO_BASE_URL }}
