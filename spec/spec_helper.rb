@@ -14,7 +14,7 @@ module SpecHelpers
   end
 
   def build_client(**opts)
-    CorvoNfse::Client.new({ api_key: API_KEY, base_url: BASE_URL }.merge(opts))
+    CorvoNfse::Client.new(**{ api_key: API_KEY, base_url: BASE_URL }.merge(opts))
   end
 end
 
