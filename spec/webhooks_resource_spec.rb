@@ -32,12 +32,14 @@ RSpec.describe "webhooks resource" do
 
   it "deliveries list/iterate/stats/retry work" do
     stub_request(:get, "#{BASE_URL}/v1/webhooks/deliveries")
+      .with(query: { "hours" => "24" })
       .to_return(
         status: 200,
         body: { data: [{ id: "dl_1", eventType: "webhook.test" }], pagination: { limit: 10, hasMore: false, nextCursor: nil } }.to_json,
         headers: json_headers
       )
     stub_request(:get, "#{BASE_URL}/v1/webhooks/deliveries/stats")
+      .with(query: { "hours" => "24" })
       .to_return(status: 200, body: { data: { total: 1, sent: 1, failed: 0, pending: 0, delayed: 0 } }.to_json, headers: json_headers)
     stub_request(:post, "#{BASE_URL}/v1/webhooks/deliveries/dl_1/retry")
       .to_return(status: 200, body: { data: { retried: true } }.to_json, headers: json_headers)

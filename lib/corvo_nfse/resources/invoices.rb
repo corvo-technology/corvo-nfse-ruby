@@ -2,31 +2,31 @@
 
 module CorvoNfse
   module Resources
-    # Invoices — create, get, list, iterate, events, pdf, xml, download_url,
-    # send_email.
+    # Invoices: create, calculate, get, list, iterate, events, pdf, xml,
+    # download_url, send_email.
     class Invoices < Base
-      INVOICE_MAPPER = ->(item) do
-        props = item.is_a?(Hash) ? item["props"] : nil
-        Types::Invoice.from_wire(props || item)
-      end
-
-      EVENT_MAPPER = ->(item) do
-        props = item.is_a?(Hash) ? item["props"] : nil
-        Types::InvoiceEvent.from_wire(props || item)
-      end
+      INVOICE_MAPPER = ->(item) { Types::Invoice.from_wire(item) }
+      EVENT_MAPPER = ->(item) { Types::InvoiceEvent.from_wire(item) }
 
       def create(params, idempotency_key: nil)
         @t.request(
           "POST", "/invoices",
           json: params,
           idempotency_key: idempotency_key,
-          unwrap: "data+props",
           type: Types::Invoice
         )
       end
 
+      # Estimate the taxes without issuing, storing or charging anything.
+      # Same body as +create+. A fiscal gap is not an error: the result has
+      # +"status" => "blocked"+ with +"blocking"+ and +"pendingFields"+. Money
+      # values are decimal strings. Returns the parsed JSON (a Hash).
+      def calculate(params)
+        @t.request("POST", "/invoices/calculate", json: params)
+      end
+
       def get(id)
-        @t.request("GET", "/invoices/#{Util.enc(id)}", unwrap: "data+props", type: Types::Invoice)
+        @t.request("GET", "/invoices/#{Util.enc(id)}", type: Types::Invoice)
       end
 
       def list(companyId: nil, status: nil, from: nil, to: nil, externalId: nil, limit: nil, cursor: nil)

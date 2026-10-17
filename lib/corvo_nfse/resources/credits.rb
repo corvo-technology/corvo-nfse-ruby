@@ -4,15 +4,8 @@ module CorvoNfse
   module Resources
     # Credits — balance, plans, history, iterate_history.
     class Credits < Base
-      PLAN_MAPPER = ->(item) do
-        props = item.is_a?(Hash) ? item["props"] : nil
-        Types::CreditPlan.from_wire(props || item)
-      end
-
-      TX_MAPPER = ->(item) do
-        props = item.is_a?(Hash) ? item["props"] : nil
-        Types::CreditTransaction.from_wire(props || item)
-      end
+      PLAN_MAPPER = ->(item) { Types::CreditPlan.from_wire(item) }
+      TX_MAPPER = ->(item) { Types::CreditTransaction.from_wire(item) }
 
       def balance
         @t.request("GET", "/credits", type: Types::CreditBalance)

@@ -7,15 +7,29 @@ module CorvoNfse
   module Webhooks
     SIGNATURE_PATTERN = /\Asha256=([0-9a-f]{64})\z/
 
+    # The events a webhook can subscribe to. +webhook.test+ is only sent by
+    # +client.webhooks.test+ and cannot be subscribed.
+    EVENTS = %w[
+      nfse.invoice.authorized
+      nfse.invoice.rejected
+      nfse.invoice.failed
+      nfse.invoice.reconciliation_required
+      nfse.invoice.manual_review
+      nfse.invoice.documents_ready
+      nfse.invoice.email_sent
+      nfse.invoice.email_failed
+      nfse.invoice.fiscal_discrepancy
+    ].freeze
+
     module_function
 
-    # Verify an ``X-Corbo-Signature: sha256=<hex>`` header (HMAC-SHA256).
+    # Verify an ``X-Corvo-Signature: sha256=<hex>`` header (HMAC-SHA256).
     #
     # Pass the raw request bytes — re-serialized JSON will not match the HMAC.
     # Comparison is constant-time via +OpenSSL.fixed_length_secure_compare+.
     #
     #   raw = request.body.read
-    #   CorvoNfse::Webhooks.verify_signature(raw, headers["X-Corbo-Signature"], secret)
+    #   CorvoNfse::Webhooks.verify_signature(raw, headers["X-Corvo-Signature"], secret)
     def verify_signature(raw_body, signature_header, secret)
       return false unless signature_header.is_a?(String) && secret.is_a?(String) && !secret.empty?
 
