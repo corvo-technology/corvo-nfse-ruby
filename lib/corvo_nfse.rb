@@ -20,6 +20,7 @@ require_relative "corvo_nfse/resources/certificates"
 require_relative "corvo_nfse/resources/invoices"
 require_relative "corvo_nfse/resources/webhooks"
 require_relative "corvo_nfse/resources/credits"
+require_relative "corvo_nfse/resources/plans"
 require_relative "corvo_nfse/resources/billing"
 require_relative "corvo_nfse/resources/health"
 

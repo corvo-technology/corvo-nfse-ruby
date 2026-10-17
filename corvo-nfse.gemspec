@@ -8,17 +8,19 @@ Gem::Specification.new do |spec|
   spec.authors = ["Corvo Technology"]
   spec.email = ["support@corvo.tech"]
 
-  spec.summary = "Ruby SDK for the Corvo NFS-e API."
+  spec.summary = "Ruby SDK for the Corvo NFS-e API: issue Brazilian service invoices."
   spec.description = "A stdlib-only (net/http) Ruby client for the Corvo NFS-e " \
                      "electronic invoicing API: companies, certificates, invoices, " \
                      "webhooks, credits and billing, with result-style [data, error] " \
                      "returns and HMAC webhook verification."
-  spec.homepage = "https://github.com/corvo-technology/corvo-nfse-ruby"
+  spec.homepage = "https://corvo.tech"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2" # Data.define requires Ruby 3.2+
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "https://github.com/corvo-technology/corvo-nfse-ruby"
+  spec.metadata["documentation_uri"] = "https://corvo.tech/en/api-docs"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/corvo-technology/corvo-nfse-ruby/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.files = Dir["lib/**/*.rb"] + %w[LICENSE README.md]

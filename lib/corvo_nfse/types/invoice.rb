@@ -11,7 +11,7 @@ module CorvoNfse
       :fiscalSchemaVersion, :issuedAt, :authorizedAt, :lastErrorCode,
       :lastErrorMessage, :lastErrorProvider, :documentsReadyAt, :lastEmailStatus,
       :lastEmailSentAt, :createdAt, :updatedAt, :documentsStatus, :emailStatus,
-      :stage
+      :stage, :scheduledFor
     )
 
     # A status transition recorded for an invoice.

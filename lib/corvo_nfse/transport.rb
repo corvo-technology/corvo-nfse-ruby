@@ -10,7 +10,7 @@ module CorvoNfse
   #
   # Every resource routes through here. It never raises for API, network, or
   # timeout failures — those come back as ``[nil, error]``. Two envelope helpers
-  # live here: ``unwrap`` (modes ``data`` / ``data+props`` / ``none``) and
+  # live here: ``unwrap`` (modes ``data`` / ``none``) and
   # ``to_error`` (non-2xx -> CorvoApiError).
   class Transport
     DEFAULT_PREFIX = "v1"
@@ -59,7 +59,9 @@ module CorvoNfse
       uri = build_uri(path, nil)
       req = request_class(method).new(uri)
       apply_headers(req, nil)
-      req.set_form(fields, "multipart/form-data")
+      boundary = "----CorvoFormBoundary#{rand(0x100000000).to_s(16)}"
+      req.body = encode_multipart(fields, boundary)
+      req["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
       res, error = perform(req)
       return [nil, error] if error
 
@@ -67,6 +69,29 @@ module CorvoNfse
       return [nil, herror] if herror
 
       [map_type(data, type), nil]
+    end
+
+    # RFC 7578 multipart body: a `file` part (with filename + content type) and
+    # plain text parts, matching the canonical Node SDK's wire shape.
+    def encode_multipart(fields, boundary)
+      body = +""
+      fields.each do |field|
+        body << "--#{boundary}\r\n"
+        if field.length == 4
+          name, content, content_type, filename = field
+          body << %(Content-Disposition: form-data; name="#{name}"; filename="#{filename}"\r\n)
+          body << "Content-Type: #{content_type}\r\n\r\n"
+          body << content.to_s
+          body << "\r\n"
+        else
+          name, content = field
+          body << %(Content-Disposition: form-data; name="#{name}"\r\n\r\n)
+          body << content.to_s
+          body << "\r\n"
+        end
+      end
+      body << "--#{boundary}--\r\n"
+      body
     end
 
     # Binary download: returns a Types::DownloadedFile.
@@ -238,12 +263,7 @@ module CorvoNfse
     def unwrap(value, mode)
       return value if mode == "none"
 
-      data = value.is_a?(Hash) ? value["data"] : nil
-      return data if mode == "data"
-
-      return data["props"] if data.is_a?(Hash)
-
-      nil
+      value.is_a?(Hash) ? value["data"] : nil
     end
 
     def map_type(data, type)

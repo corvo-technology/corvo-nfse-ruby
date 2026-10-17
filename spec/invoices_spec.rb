@@ -4,9 +4,9 @@ RSpec.describe "invoices" do
   let(:client) { build_client }
   let(:invoice) { { id: "inv_1", companyId: "c_1", status: "authorized", accessKey: "35260" } }
 
-  it "create unwraps data.props, sends camelCase body and Idempotency-Key" do
+  it "create returns the invoice, sends camelCase body and Idempotency-Key" do
     stub_request(:post, "#{BASE_URL}/v1/invoices")
-      .to_return(status: 201, body: { data: { props: invoice } }.to_json, headers: json_headers)
+      .to_return(status: 201, body: { data: invoice }.to_json, headers: json_headers)
 
     params = { customer: { name: "ACME" }, service: { code: "0101" }, amount: 10.5, competenceDate: "2026-10-01" }
     data, error = client.invoices.create(params, idempotency_key: "idem_1")
@@ -21,12 +21,16 @@ RSpec.describe "invoices" do
       )
   end
 
-  it "list maps props items and events maps props items" do
-    page = { data: [{ props: invoice }], pagination: { limit: 5, hasMore: false, nextCursor: nil } }
-    events = { data: [{ props: { id: "evt_1", invoiceId: "inv_1", toStatus: "authorized" } }],
+  it "list and events return typed items" do
+    page = { data: [invoice], pagination: { limit: 5, hasMore: false, nextCursor: nil } }
+    events = { data: [{ id: "evt_1", invoiceId: "inv_1", toStatus: "authorized" }],
                pagination: { limit: 5, hasMore: false, nextCursor: nil } }
-    stub_request(:get, "#{BASE_URL}/v1/invoices").to_return(status: 200, body: page.to_json, headers: json_headers)
-    stub_request(:get, "#{BASE_URL}/v1/invoices/inv_1/events").to_return(status: 200, body: events.to_json, headers: json_headers)
+    stub_request(:get, "#{BASE_URL}/v1/invoices")
+      .with(query: { "companyId" => "c_1", "status" => "authorized", "limit" => "5" })
+      .to_return(status: 200, body: page.to_json, headers: json_headers)
+    stub_request(:get, "#{BASE_URL}/v1/invoices/inv_1/events")
+      .with(query: { "limit" => "5" })
+      .to_return(status: 200, body: events.to_json, headers: json_headers)
 
     list, error = client.invoices.list(companyId: "c_1", status: "authorized", limit: 5)
     expect(error).to be_nil

@@ -13,7 +13,7 @@ module CorvoNfse
     ENV_BASE_URL = "CORVO_BASE_URL"
 
     attr_reader :billing, :certificates, :companies, :credits, :health,
-                :invoices, :webhooks, :base_url
+                :invoices, :plans, :webhooks, :base_url
 
     def initialize(api_key: nil, base_url: nil, prefix: Transport::DEFAULT_PREFIX,
                    timeout: Transport::DEFAULT_TIMEOUT, allow_insecure_http: false)
@@ -39,6 +39,7 @@ module CorvoNfse
       @credits = Resources::Credits.new(@transport)
       @health = Resources::Health.new(@transport)
       @invoices = Resources::Invoices.new(@transport)
+      @plans = Resources::Plans.new(@transport)
       @webhooks = Resources::Webhooks.new(@transport)
     end
 

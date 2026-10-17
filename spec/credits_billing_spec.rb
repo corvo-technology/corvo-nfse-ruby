@@ -12,9 +12,9 @@ RSpec.describe "credits and billing" do
     expect(data.balance).to eq(100)
   end
 
-  it "credits plans and history map props items" do
-    plans = { data: [{ props: { id: "pl_1", slug: "starter" } }], pagination: { limit: 10, hasMore: false, nextCursor: nil } }
-    history = { data: [{ props: { id: "tx_1", type: "usage", creditDelta: -1 } }], pagination: { limit: 10, hasMore: false, nextCursor: nil } }
+  it "credits plans and history return typed items" do
+    plans = { data: [{ id: "pl_1", slug: "starter" }], pagination: { limit: 10, hasMore: false, nextCursor: nil } }
+    history = { data: [{ id: "tx_1", type: "usage", amount: -1 }], pagination: { limit: 10, hasMore: false, nextCursor: nil } }
     stub_request(:get, "#{BASE_URL}/v1/credits/plans").to_return(status: 200, body: plans.to_json, headers: json_headers)
     stub_request(:get, "#{BASE_URL}/v1/credits/history").to_return(status: 200, body: history.to_json, headers: json_headers)
 
