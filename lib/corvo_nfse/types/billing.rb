@@ -11,7 +11,7 @@ module CorvoNfse
     QuotaStatus = define_data(
       :canEmit, :creditsRemaining, :creditsUsed, :creditsReserved,
       :monthlyAllowance, :dailyUsage, :dailyLimit, :activeCompanies,
-      :maxActiveCompanies, :periodStart, :periodEnd
+      :maxActiveCompanies, :periodStart, :periodEnd, :reason
     )
   end
 end

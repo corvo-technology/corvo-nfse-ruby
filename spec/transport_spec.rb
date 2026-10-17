@@ -12,9 +12,9 @@ RSpec.describe CorvoNfse::Transport do
     expect(data.canEmit).to be(true)
   end
 
-  it "unwraps { data: { props } } (mode data+props)" do
+  it "returns the resource straight from data" do
     stub_request(:post, "#{BASE_URL}/v1/invoices")
-      .to_return(status: 201, body: { data: { props: { id: "inv_1" } } }.to_json, headers: json_headers)
+      .to_return(status: 201, body: { data: { id: "inv_1" } }.to_json, headers: json_headers)
     data, error = client.invoices.create({ customer: { name: "A" } })
     expect(error).to be_nil
     expect(data).to be_a(CorvoNfse::Types::Invoice)

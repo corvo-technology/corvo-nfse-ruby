@@ -2,10 +2,12 @@
 
 module CorvoNfse
   module Types
-    # A fiscal company (tomador/prestador) registered with Corvo.
+    # A fiscal company (the invoice issuer) registered with Corvo. Optional fields
+    # are absent from the JSON when unset and read as nil. +setupGaps+ lists what is
+    # still pending (municipality_code, certificate).
     Company = define_data(
       :id, :tenantId, :legalName, :tradeName, :taxId, :municipalReg,
-      :municipalityCode, :taxRegime, :simpleNational, :specialRegime,
+      :sendMunicipalReg, :municipalityCode, :defaultServiceCode, :taxRegime, :simpleNational, :specialRegime,
       :addressStreet, :addressNumber, :addressComplement, :addressDistrict,
       :addressCity, :addressState, :addressZip, :fiscalSchemaVersion,
       :environment, :status, :createdAt, :updatedAt, :deletedAt, :setupGaps

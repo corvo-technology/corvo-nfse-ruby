@@ -2,7 +2,7 @@
 
 RSpec.describe "smoke" do
   it "loads the SDK and exposes the public surface" do
-    expect(CorvoNfse::VERSION).to eq("0.1.0")
+    expect(CorvoNfse::VERSION).to eq("0.1.1")
     expect(CorvoNfse::Client).to be_a(Class)
     expect(CorvoNfse::CorvoApiError).to be_a(Class)
     expect(CorvoNfse::Webhooks).to respond_to(:verify_signature)

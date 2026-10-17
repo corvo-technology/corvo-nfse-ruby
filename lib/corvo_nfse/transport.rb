@@ -10,7 +10,7 @@ module CorvoNfse
   #
   # Every resource routes through here. It never raises for API, network, or
   # timeout failures — those come back as ``[nil, error]``. Two envelope helpers
-  # live here: ``unwrap`` (modes ``data`` / ``data+props`` / ``none``) and
+  # live here: ``unwrap`` (modes ``data`` / ``none``) and
   # ``to_error`` (non-2xx -> CorvoApiError).
   class Transport
     DEFAULT_PREFIX = "v1"
@@ -263,12 +263,7 @@ module CorvoNfse
     def unwrap(value, mode)
       return value if mode == "none"
 
-      data = value.is_a?(Hash) ? value["data"] : nil
-      return data if mode == "data"
-
-      return data["props"] if data.is_a?(Hash)
-
-      nil
+      value.is_a?(Hash) ? value["data"] : nil
     end
 
     def map_type(data, type)
