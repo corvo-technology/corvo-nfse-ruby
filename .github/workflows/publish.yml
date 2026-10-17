@@ -1,0 +1,40 @@
+name: Publish to RubyGems
+
+# Runs when a version tag is pushed (git tag v0.1.1 && git push origin v0.1.1).
+# Uses RubyGems trusted publishing: no token is stored. On rubygems.org, add this repository and
+# the workflow file "publish.yml" (environment "rubygems") as a trusted publisher of the gem.
+# The gem requires MFA, which is why an API key is not used.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: rubygems
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: The tag must match the gem version
+        run: |
+          VERSION=$(ruby -r ./lib/corvo_nfse/version -e 'puts CorvoNfse::VERSION')
+          test "v$VERSION" = "$GITHUB_REF_NAME" || { echo "Tag $GITHUB_REF_NAME does not match version $VERSION"; exit 1; }
+
+      - name: Test
+        run: bundle exec rspec
+
+      - name: Build
+        run: gem build corvo-nfse.gemspec
+
+      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+
+      - name: Publish
+        run: gem push corvo-nfse-*.gem
