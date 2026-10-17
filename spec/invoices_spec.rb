@@ -25,8 +25,12 @@ RSpec.describe "invoices" do
     page = { data: [{ props: invoice }], pagination: { limit: 5, hasMore: false, nextCursor: nil } }
     events = { data: [{ props: { id: "evt_1", invoiceId: "inv_1", toStatus: "authorized" } }],
                pagination: { limit: 5, hasMore: false, nextCursor: nil } }
-    stub_request(:get, "#{BASE_URL}/v1/invoices").to_return(status: 200, body: page.to_json, headers: json_headers)
-    stub_request(:get, "#{BASE_URL}/v1/invoices/inv_1/events").to_return(status: 200, body: events.to_json, headers: json_headers)
+    stub_request(:get, "#{BASE_URL}/v1/invoices")
+      .with(query: { "companyId" => "c_1", "status" => "authorized", "limit" => "5" })
+      .to_return(status: 200, body: page.to_json, headers: json_headers)
+    stub_request(:get, "#{BASE_URL}/v1/invoices/inv_1/events")
+      .with(query: { "limit" => "5" })
+      .to_return(status: 200, body: events.to_json, headers: json_headers)
 
     list, error = client.invoices.list(companyId: "c_1", status: "authorized", limit: 5)
     expect(error).to be_nil

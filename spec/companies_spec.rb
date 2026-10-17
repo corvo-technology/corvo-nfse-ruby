@@ -66,6 +66,7 @@ RSpec.describe "companies" do
 
   it "iterate raises a CorvoApiError on first-page failure" do
     stub_request(:get, "#{BASE_URL}/v1/companies")
+      .with(query: { "limit" => "1" })
       .to_return(status: 500, body: { code: "SERVER", message: "boom" }.to_json, headers: json_headers)
 
     expect { client.companies.iterate(limit: 1).to_a }.to raise_error(CorvoNfse::CorvoApiError) do |err|

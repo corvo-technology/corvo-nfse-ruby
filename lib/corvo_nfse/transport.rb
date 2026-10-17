@@ -59,7 +59,9 @@ module CorvoNfse
       uri = build_uri(path, nil)
       req = request_class(method).new(uri)
       apply_headers(req, nil)
-      req.set_form(fields, "multipart/form-data")
+      boundary = "----CorvoFormBoundary#{rand(0x100000000).to_s(16)}"
+      req.body = encode_multipart(fields, boundary)
+      req["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
       res, error = perform(req)
       return [nil, error] if error
 
@@ -67,6 +69,29 @@ module CorvoNfse
       return [nil, herror] if herror
 
       [map_type(data, type), nil]
+    end
+
+    # RFC 7578 multipart body: a `file` part (with filename + content type) and
+    # plain text parts, matching the canonical Node SDK's wire shape.
+    def encode_multipart(fields, boundary)
+      body = +""
+      fields.each do |field|
+        body << "--#{boundary}\r\n"
+        if field.length == 4
+          name, content, content_type, filename = field
+          body << %(Content-Disposition: form-data; name="#{name}"; filename="#{filename}"\r\n)
+          body << "Content-Type: #{content_type}\r\n\r\n"
+          body << content.to_s
+          body << "\r\n"
+        else
+          name, content = field
+          body << %(Content-Disposition: form-data; name="#{name}"\r\n\r\n)
+          body << content.to_s
+          body << "\r\n"
+        end
+      end
+      body << "--#{boundary}--\r\n"
+      body
     end
 
     # Binary download: returns a Types::DownloadedFile.
