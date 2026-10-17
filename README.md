@@ -8,7 +8,7 @@ Ruby SDK for the [Corvo](https://corvo.tech) NFS-e API. Register companies, calc
 - **Webhook signature check** in constant time.
 - **No runtime dependencies**: it uses `net/http`, `uri`, `json` and `openssl` from the standard library. Library only, no CLI.
 
-Full API reference: <https://corvo.tech/en/api-docs>.
+Full API reference: <https://corvo.tech/en/docs>.
 
 ## Installation
 
