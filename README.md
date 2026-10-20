@@ -120,6 +120,35 @@ file, error = client.invoices.pdf("inv_1")
 File.binwrite("nfse.pdf", file.content) unless error # also file.mime_type and file.file_name
 ```
 
+### Cancel an invoice
+
+`cancel` takes a `reason` from `CorvoNfse::Types::Invoice::CANCELLATION_REASONS` (`"issue_error"`, `"service_not_provided"` or `"other"`) and an optional `description`. The API requires a 15 to 255 character description once the invoice is `processing` or `authorized`; it is optional for a `queued` invoice. The result is the updated invoice, like `get`:
+
+- a `queued` invoice is cancelled at once (HTTP 200, `status == "cancelled"`, `cancelledAt` set);
+- an `authorized` invoice moves to `"cancelling"` while the Sefin processes the cancellation event (HTTP 202);
+- a `processing` invoice stays `"processing"` with `cancellationRequestedAt` set and is cancelled once it is authorized (HTTP 202).
+
+Cancelling an issued NFS-e does not refund the credit. Invoices in `retry_pending`, `reconciliation_required` or `manual_review` return a `CorvoApiError` with `code == "ERROR_INVOICE_NOT_CANCELLABLE"` (HTTP 409); an invalid description returns HTTP 422.
+
+```ruby
+invoice, error = client.invoices.cancel(
+  "inv_1",
+  reason: "issue_error",
+  description: "Valor emitido com erro" # 15-255 characters
+)
+raise error if error
+
+# Later, check the outcome with get:
+invoice, error = client.invoices.get("inv_1")
+case invoice.status
+when "cancelled"  then puts "cancelled at #{invoice.cancelledAt}"
+when "cancelling" then puts "still being processed by the Sefin"
+when "authorized" then warn "Sefin rejected the cancellation: #{invoice.lastErrorMessage}"
+end
+```
+
+The invoice carries `cancellationReason`, `cancellationDescription`, `cancellationRequestedAt` and `cancelledAt`. The `nfse.invoice.cancelled` and `nfse.invoice.cancellation_rejected` webhooks report the outcome too. `CorvoNfse::Types::Invoice::STATUSES` lists every invoice status.
+
 ### Verify webhook signatures
 
 ```ruby
@@ -133,7 +162,7 @@ else
 end
 ```
 
-`CorvoNfse::Webhooks::EVENTS` lists the 9 events you can subscribe to. The `webhook.test` event is only sent by `client.webhooks.test`.
+`CorvoNfse::Webhooks::EVENTS` lists the 11 events you can subscribe to. The `webhook.test` event is only sent by `client.webhooks.test`.
 
 ## Resources
 
@@ -141,7 +170,7 @@ end
 | --- | --- |
 | `client.companies` | `create`, `get`, `update`, `remove`, `list`, `iterate` |
 | `client.certificates` | `upload`, `list`, `remove` |
-| `client.invoices` | `create`, `calculate`, `get`, `list`, `iterate`, `events`, `pdf`, `xml`, `download_url`, `send_email` |
+| `client.invoices` | `create`, `calculate`, `get`, `list`, `iterate`, `events`, `pdf`, `xml`, `download_url`, `send_email`, `cancel` |
 | `client.webhooks` | `list`, `create`, `remove`, `test`, plus `deliveries.list/iterate/stats/retry` |
 | `client.credits` | `balance`, `plans`, `history`, `iterate_history` |
 | `client.billing` | `plan`, `usage` |
