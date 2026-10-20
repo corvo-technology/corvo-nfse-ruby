@@ -3,7 +3,7 @@
 module CorvoNfse
   module Resources
     # Invoices: create, calculate, get, list, iterate, events, pdf, xml,
-    # download_url, send_email.
+    # download_url, send_email, cancel.
     class Invoices < Base
       INVOICE_MAPPER = ->(item) { Types::Invoice.from_wire(item) }
       EVENT_MAPPER = ->(item) { Types::InvoiceEvent.from_wire(item) }
@@ -74,6 +74,37 @@ module CorvoNfse
           "POST", "/invoices/#{Util.enc(id)}/email",
           idempotency_key: idempotency_key,
           type: Types::InvoiceEmailResult
+        )
+      end
+
+      # Request the cancellation of an invoice. Returns the updated
+      # Types::Invoice, like +get+.
+      #
+      # +reason+ is one of Types::Invoice::CANCELLATION_REASONS
+      # (+"issue_error"+, +"service_not_provided"+, +"other"+). +description+
+      # is optional for a +queued+ invoice and required (15-255 characters) once
+      # it is +processing+ or +authorized+; the API validates it (HTTP 422).
+      #
+      # - +queued+: cancelled at once, +status == "cancelled"+ (HTTP 200).
+      # - +authorized+: +status == "cancelling"+ while the Sefin processes the
+      #   event (HTTP 202). Check the outcome later with +get+: +"cancelled"+
+      #   when done, back to +"authorized"+ with +lastErrorMessage+ if rejected.
+      # - +processing+: stays +"processing"+ with +cancellationRequestedAt+ set
+      #   (HTTP 202).
+      #
+      # +retry_pending+, +reconciliation_required+ and +manual_review+ invoices
+      # return a CorvoApiError with +code == "ERROR_INVOICE_NOT_CANCELLABLE"+
+      # (HTTP 409). Repeating the call returns the current state.
+      #
+      #   invoice, error = client.invoices.cancel("inv_1", reason: "issue_error",
+      #                                           description: "Valor emitido com erro")
+      def cancel(id, reason:, description: nil)
+        body = { reason: reason }
+        body[:description] = description unless description.nil?
+        @t.request(
+          "POST", "/invoices/#{Util.enc(id)}/cancel",
+          json: body,
+          type: Types::Invoice
         )
       end
     end
