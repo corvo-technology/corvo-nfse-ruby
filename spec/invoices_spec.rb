@@ -65,4 +65,54 @@ RSpec.describe "invoices" do
     expect(merr).to be_nil
     expect(mail.status).to eq("queued")
   end
+
+  it "create_batch posts the items without an Idempotency-Key header and returns typed results" do
+    summary = {
+      total: 2, accepted: 1, rejected: 1,
+      results: [
+        { index: 0, status: "accepted", replayed: true, invoice: invoice.merge(deduction: 20) },
+        { index: 1, status: "rejected", error: { code: "ERROR_VALIDATION", message: "Request validation failed" } }
+      ]
+    }
+    stub_request(:post, "#{BASE_URL}/v1/invoices/batches")
+      .to_return(status: 202, body: { data: summary }.to_json, headers: json_headers)
+
+    item = { companyTaxId: "11222333000181", idempotencyKey: "sheet-row-2", service: { description: "Consultoria" },
+             amount: 150.5, deduction: 20, competenceDate: "2026-10-01" }
+    data, error = client.invoices.create_batch([item])
+
+    expect(error).to be_nil
+    expect(data).to be_a(CorvoNfse::Types::InvoiceBatchSummary)
+    expect(data.total).to eq(2)
+    expect(data.results[0].replayed).to be(true)
+    expect(data.results[0].invoice).to be_a(CorvoNfse::Types::Invoice)
+    expect(data.results[0].invoice.deduction).to eq(20)
+    expect(data.results[1].error["code"]).to eq("ERROR_VALIDATION")
+    expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/invoices/batches")
+      .with { |req| JSON.parse(req.body)["invoices"][0]["idempotencyKey"] == "sheet-row-2" && !req.headers.key?("Idempotency-Key") }
+  end
+
+  it "cancel posts reason and description and returns the typed invoice" do
+    stub_request(:post, "#{BASE_URL}/v1/invoices/inv_1/cancel")
+      .to_return(status: 202, body: { data: invoice.merge(status: "cancelling", cancellationReason: "issue_error") }.to_json, headers: json_headers)
+
+    data, error = client.invoices.cancel("inv_1", reason: "issue_error", description: "Wrong amount on the invoice")
+
+    expect(error).to be_nil
+    expect(data.status).to eq("cancelling")
+    expect(data.cancellationReason).to eq("issue_error")
+    expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/invoices/inv_1/cancel")
+      .with(body: { "reason" => "issue_error", "description" => "Wrong amount on the invoice" })
+  end
+
+  it "cancel omits the description when not given and returns the typed error" do
+    stub_request(:post, "#{BASE_URL}/v1/invoices/inv_1/cancel")
+      .to_return(status: 409, body: { statusCode: 409, code: "ERROR_INVOICE_NOT_CANCELLABLE", message: "no" }.to_json, headers: json_headers)
+
+    data, error = client.invoices.cancel("inv_1", reason: "other")
+
+    expect(data).to be_nil
+    expect(error.code).to eq("ERROR_INVOICE_NOT_CANCELLABLE")
+    expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/invoices/inv_1/cancel").with(body: { "reason" => "other" })
+  end
 end

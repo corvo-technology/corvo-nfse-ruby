@@ -2,8 +2,8 @@
 
 module CorvoNfse
   module Resources
-    # Invoices: create, calculate, get, list, iterate, events, pdf, xml,
-    # download_url, send_email.
+    # Invoices: create, create_batch, calculate, get, list, iterate, events,
+    # pdf, xml, download_url, send_email, cancel.
     class Invoices < Base
       INVOICE_MAPPER = ->(item) { Types::Invoice.from_wire(item) }
       EVENT_MAPPER = ->(item) { Types::InvoiceEvent.from_wire(item) }
@@ -14,6 +14,22 @@ module CorvoNfse
           json: params,
           idempotency_key: idempotency_key,
           type: Types::Invoice
+        )
+      end
+
+      # Issue 1 to 50 invoices in one call, for one company or several.
+      #
+      # Each item takes the fields of +create+ plus an optional
+      # +idempotencyKey+ (up to 255 characters); the Idempotency-Key header is
+      # not used by this route. Items are checked one by one: valid ones are
+      # saved together, invalid ones come back "rejected" and are not saved.
+      # Match each result's +index+ to the item you sent, fix only the
+      # rejected ones and send them again.
+      def create_batch(invoices)
+        @t.request(
+          "POST", "/invoices/batches",
+          json: { invoices: invoices },
+          type: Types::InvoiceBatchSummary
         )
       end
 
@@ -66,6 +82,25 @@ module CorvoNfse
           "POST", "/invoices/#{Util.enc(id)}/download-url",
           json: { format: format },
           type: Types::InvoiceDownloadUrl
+        )
+      end
+
+      # Cancel an invoice. +reason+ is "issue_error", "service_not_provided"
+      # or "other". +description+ (15 to 255 characters) is required to cancel
+      # an authorized or processing invoice and optional for a queued one.
+      #
+      # A queued invoice is cancelled at once (status "cancelled"); an
+      # authorized one moves to "cancelling" while the cancellation is
+      # processed, and a processing one stays "processing" with
+      # +cancellationRequestedAt+ set. Call +get+ later: "cancelled" when done,
+      # or back to "authorized" with +lastErrorCode+ when it was rejected.
+      def cancel(id, reason:, description: nil)
+        body = { reason: reason }
+        body[:description] = description unless description.nil?
+        @t.request(
+          "POST", "/invoices/#{Util.enc(id)}/cancel",
+          json: body,
+          type: Types::Invoice
         )
       end
 
