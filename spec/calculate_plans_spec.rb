@@ -79,9 +79,9 @@ RSpec.describe "invoices.calculate and plans" do
     expect(none).to be_nil
   end
 
-  it "exposes the nine subscribable webhook events" do
-    expect(CorvoNfse::Webhooks::EVENTS.length).to eq(9)
-    expect(CorvoNfse::Webhooks::EVENTS).to include("nfse.invoice.fiscal_discrepancy")
+  it "exposes the eleven subscribable webhook events" do
+    expect(CorvoNfse::Webhooks::EVENTS.length).to eq(11)
+    expect(CorvoNfse::Webhooks::EVENTS).to include("nfse.invoice.fiscal_discrepancy", "nfse.invoice.cancelled", "nfse.invoice.cancellation_rejected")
     expect(CorvoNfse::Webhooks::EVENTS).not_to include("webhook.test")
   end
 end
