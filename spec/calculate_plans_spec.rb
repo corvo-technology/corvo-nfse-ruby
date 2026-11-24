@@ -32,6 +32,16 @@ RSpec.describe "invoices.calculate and plans" do
       .with { |req| !JSON.parse(req.body).key?("customer") })
   end
 
+  it "calculate accepts null classification, applicability and calculation" do
+    stub_request(:post, "#{BASE_URL}/v1/invoices/calculate")
+      .to_return(status: 200, body: { data: { status: "ready", classification: nil, applicability: nil, calculation: nil } }.to_json,
+                 headers: json_headers)
+    data, error = client.invoices.calculate(service: {}, amount: 10, competenceDate: "2026-10-16")
+    expect(error).to be_nil
+    expect(data["status"]).to eq("ready")
+    expect(data["classification"]).to be_nil
+  end
+
   it "calculate returns a blocked estimate as data, not as an error" do
     stub_request(:post, "#{BASE_URL}/v1/invoices/calculate")
       .to_return(
@@ -51,7 +61,9 @@ RSpec.describe "invoices.calculate and plans" do
                                       pagination: { limit: 5, hasMore: false, nextCursor: nil } }.to_json,
                  headers: json_headers)
     stub_request(:get, "#{BASE_URL}/v1/plans/solo")
-      .to_return(status: 200, body: { data: { slug: "solo", monthlyTotalCents: 8990 } }.to_json, headers: json_headers)
+      .to_return(status: 200, body: { data: { slug: "solo", monthlyEquivalentCents: 8990, chargeTotalCents: 8990 } }.to_json, headers: json_headers)
+    stub_request(:get, "#{BASE_URL}/v1/plans/solo").with(query: { "cycle" => "annual" })
+      .to_return(status: 200, body: { data: { slug: "solo", monthlyEquivalentCents: 7990, chargeTotalCents: 95_880 } }.to_json, headers: json_headers)
     stub_request(:get, "#{BASE_URL}/v1/plans/quote")
       .with(query: { "volume" => "20000" })
       .to_return(status: 200, body: { data: { recommended_plan: "escala", total_estimated_cents: 179_990 } }.to_json,
@@ -62,12 +74,17 @@ RSpec.describe "invoices.calculate and plans" do
 
     page, perr = client.plans.list(limit: 5)
     expect(perr).to be_nil
-    expect(page.data.first).to be_a(CorvoNfse::Types::PlanQuote)
+    expect(page.data.first).to be_a(CorvoNfse::Types::PlanPrice)
     expect(page.data.first.slug).to eq("free")
 
     plan, gerr = client.plans.get("solo")
     expect(gerr).to be_nil
-    expect(plan.monthlyTotalCents).to eq(8990)
+    expect(plan.chargeTotalCents).to eq(8990)
+
+    annual, aerr = client.plans.get("solo", cycle: "annual")
+    expect(aerr).to be_nil
+    expect(annual.slug).to eq("solo")
+    expect(WebMock).to have_requested(:get, "#{BASE_URL}/v1/plans/solo").with(query: { "cycle" => "annual" })
 
     quote, qerr = client.plans.quote(20_000)
     expect(qerr).to be_nil

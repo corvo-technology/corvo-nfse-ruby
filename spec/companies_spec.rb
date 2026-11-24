@@ -84,6 +84,11 @@ RSpec.describe "companies" do
     expect(uerr).to be_nil
     expect(updated).to be_a(CorvoNfse::Types::Company)
 
+    expect(WebMock).to have_requested(:patch, "#{BASE_URL}/v1/companies/c_1").with(body: { "tradeName" => "New" })
+
+    client.companies.update("c_1", tradeName: "New", taxId: "41834687000148")
+    expect(WebMock).to have_requested(:patch, "#{BASE_URL}/v1/companies/c_1").with(body: { "tradeName" => "New" }).twice
+
     data, error = client.companies.remove("c_1")
     expect(data).to be_nil
     expect(error).to be_nil

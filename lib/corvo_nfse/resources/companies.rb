@@ -29,7 +29,9 @@ module CorvoNfse
         @t.request("GET", "/companies/#{Util.enc(id)}", type: Types::Company)
       end
 
+      # The CNPJ (+taxId+) cannot be changed, so it is not sent.
       def update(id, **params)
+        params = params.reject { |key, _| key.to_s == "taxId" }
         @t.request("PATCH", "/companies/#{Util.enc(id)}", json: params, type: Types::Company)
       end
 

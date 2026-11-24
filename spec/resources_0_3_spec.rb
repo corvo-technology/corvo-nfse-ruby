@@ -170,12 +170,13 @@ RSpec.describe "resources added in API contract 0.3.0" do
 
     it "invoice package summary and ZIP download (bytes)" do
       stub_request(:get, "#{BASE_URL}/v1/companies/c_1/invoice-package/summary").with(query: { "month" => "2026-10" })
-                                                                                .to_return(status: 200, body: body_of({ companyName: "Acme", companyTaxId: "1", month: "2026-10", count: 3, total: 300.5, limit: 500 }), headers: json_headers)
+                                                                                .to_return(status: 200, body: body_of({ companyName: "Acme", companyTaxId: "1", month: "2026-10", count: 3, total: "300.50", limit: 500 }), headers: json_headers)
       zip = "PK\x03\x04\xFF\x00".b
       stub_request(:get, "#{BASE_URL}/v1/companies/c_1/invoice-package").with(query: { "month" => "2026-10", "include" => "xml" })
                                                                          .to_return(status: 200, body: zip, headers: { "Content-Type" => "application/zip", "Content-Disposition" => 'attachment; filename="pacote-2026-10.zip"' })
       summary, = client.invoice_package.summary("c_1", month: "2026-10")
       expect(summary.count).to eq(3)
+      expect(summary.total).to eq("300.50")
       file, error = client.invoice_package.download("c_1", month: "2026-10", include: "xml")
       expect(error).to be_nil
       expect(file.content.bytes).to eq(zip.bytes)
@@ -268,6 +269,8 @@ RSpec.describe "resources added in API contract 0.3.0" do
       emitted, = client.imports.emit("imp_1", send_email: false)
       expect(emitted.status).to eq("emitting")
       expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/imports/imp_1/emit").with(body: { "sendEmail" => false })
+      client.imports.emit("imp_1")
+      expect(WebMock).to(have_requested(:post, "#{BASE_URL}/v1/imports/imp_1/emit").with { |req| req.body.to_s.empty? })
       rows, = client.imports.rows("imp_1", status: "invalid")
       expect(rows.data.first).to be_a(CorvoNfse::Types::ImportRow)
       expect(rows.data.first.error_code).to eq("ERROR_IMPORT_ROW")

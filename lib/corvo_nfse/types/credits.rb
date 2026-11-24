@@ -32,10 +32,11 @@ module CorvoNfse
       :isReservation, :relatedTransactionId, :createdAt
     )
 
-    # A public price catalog entry (+GET /plans+), prices in centavos.
-    PlanQuote = define_data(
-      :slug, :name, :monthlyAllowance, :basePriceCents, :perCreditOverageCents,
-      :monthlyTotalCents, :currency
+    # A public price of a paid plan (+GET /plans+, +GET /plans/{slug}+), prices
+    # in centavos for the chosen billing cycle.
+    PlanPrice = define_data(
+      :slug, :name, :monthlyAllowance, :basePriceCents, :monthlyEquivalentCents,
+      :chargeTotalCents, :currency
     )
 
     # The plan recommended for a monthly volume (+GET /plans/quote+). The wire

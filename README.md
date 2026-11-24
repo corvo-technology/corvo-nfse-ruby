@@ -8,7 +8,7 @@ Ruby SDK for the [Corvo](https://corvo.tech) NFS-e API. Register companies, calc
 - **Webhook signature check** in constant time.
 - **No runtime dependencies**: it uses `net/http`, `uri`, `json` and `openssl` from the standard library. Library only, no CLI.
 
-Full API reference: <https://corvo.tech/en/docs>. The machine-readable contract (OpenAPI 3.0, version 0.3.0, 92 operations) is at <https://corvo.tech/openapi.json>; this SDK covers all of it.
+Full API reference: <https://corvo.tech/en/docs>. The machine-readable contract (OpenAPI 3.0, version 0.3.0, 94 operations) is at <https://corvo.tech/openapi.json>; this SDK covers all of it.
 
 ## Installation
 
@@ -266,7 +266,7 @@ end
 | `client.webhooks` | `list`, `create`, `remove`, `test`, plus `deliveries.list/iterate/stats/retry` |
 | `client.credits` | `balance`, `plans`, `history`, `iterate_history`, `preview_purchase` |
 | `client.billing` | `plan`, `usage` |
-| `client.plans` | `list`, `get`, `quote` (public price catalog, outside the contract) |
+| `client.plans` | `list`, `get` (public prices, no API key; `cycle: "annual"` for the discounted price), `quote` (outside the contract) |
 | `client.health` | `live`, `ready` |
 
 Every operationId of the contract maps to one of these methods: the table is in `spec/support_operations.rb` and `spec/contract/operations_spec.rb` fails when `spec/openapi.json` gains an operation the SDK does not implement.

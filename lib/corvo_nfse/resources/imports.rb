@@ -42,8 +42,7 @@ module CorvoNfse
 
       # Emit every valid row. +send_email+ false skips the customer e-mail.
       def emit(id, send_email: nil)
-        body = {}
-        body[:sendEmail] = send_email unless send_email.nil?
+        body = send_email.nil? ? nil : { sendEmail: send_email }
         @t.request("POST", "/imports/#{Util.enc(id)}/emit", json: body, type: Types::ImportJob)
       end
 

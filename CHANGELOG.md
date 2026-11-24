@@ -2,9 +2,14 @@
 
 ## 0.3.0 (2026-11-24)
 
-Updates the SDK to the public API contract 0.3.0 (92 operations, `spec/openapi.json`).
+Updates the SDK to the public API contract 0.3.0 (94 operations, `spec/openapi.json`).
 
 ### Breaking
+
+- **`invoice_package.summary`**: `total` is now a decimal string such as `"1234.50"`, not a number.
+- **`companies.update`** no longer sends `taxId` (the CNPJ is immutable; the contract removed it).
+- **Nullable fields.** Company (`tradeName`, address fields, `municipalReg`, `defaultServiceCode`, tax rates) and invoice (`emailStatus`, `lastEmailStatus`, `cancellationReason`, `portalFlag`) fields can be `nil`; `invoices.calculate` `classification`, `applicability` and `calculation` can be `nil`. `nfseNumber`, `dpsNumber` and `DpsSequence#lastNumber` are integers. `error.details` in a batch result can be an Array of issues or a Hash. `billing.plan` `stripe_subscription` is a boolean and `pix_subscription` a Hash or `nil`.
+- `invoices.send_email` and `imports.emit` send no body when called without parameters.
 
 - **Plan slugs.** `developer`, `growth`, `scale` and `volume` no longer exist: the slugs are `free`, `solo`, `equipe`, `empresa` and `escala` (plus `self-hosted`). Read `slug` as an open string; docs and tests changed.
 - **`invoices.create` with `options.type` `SCHEDULE`** no longer returns an invoice: it returns a `Types::Schedule` (snake_case fields). `RECURRING` (with `options.recurrence`) behaves the same way. `IMMEDIATE` still returns a `Types::Invoice`.
@@ -14,7 +19,9 @@ Updates the SDK to the public API contract 0.3.0 (92 operations, `spec/openapi.j
 - **Types follow the contract exactly.** `Types::Invoice` lost `documentKeyVersion` and gained `substitutesInvoiceId`, `substitutionDescription` and `portalFlag`; `Types::Company` lost `deletedAt` and gained `simplesIssRate`, `simplesRate`, `municipalityAgreement` and `warnings`; `Types::InvoiceEvent` gained `source`, `portalEvent` and `portalNsu`; `Types::Webhook` gained `environment`.
 - **Webhooks and environments.** A `corvo_test_` key can no longer see or reach live webhooks, deliveries and integration connections: use a `corvo_live_` key to manage live ones. Webhook URLs that resolve to private networks are refused by the API. `Webhooks::EVENTS` has 12 events (`nfse.invoice.taker_rejected` added).
 
-### Added (51 operations)
+### Added (53 operations)
+
+- **Public plans endpoints** (no API key): `plans.list` (`GET /plans`) and `plans.get(slug)` (`GET /plans/{slug}`), both with `cycle:` (`monthly` or `annual`), returning `Types::PlanPrice` (`monthlyEquivalentCents`, `chargeTotalCents`; replaces `Types::PlanQuote`).
 
 - `customers` (`search`, `iterate`, `get`, `update`, `remove`), `cnpj.lookup`, `service_favorites` (`list`, `create`, `remove`).
 - `accountant_package` (`get`, `update`, `send_package`, `list_sends`) and `invoice_package` (`summary`, `download` ZIP).

@@ -50,7 +50,7 @@ RSpec.describe "API contract coverage" do
 
   it "implements all operations of the contract and nothing else" do
     ids = self.class.contract_operations.map { |o| o[:id] }
-    expect(ids.length).to eq(92)
+    expect(ids.length).to eq(94)
     expect(OPERATIONS.keys.sort).to eq(ids.sort)
   end
 
