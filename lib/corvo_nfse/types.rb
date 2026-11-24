@@ -19,7 +19,30 @@ module CorvoNfse
 
         src = hash.is_a?(Hash) ? hash.transform_keys(&:to_sym) : {}
         vals = members.to_h { |m| [m, src[m]] }
+        nested_types.each do |name, type|
+          value = vals[name]
+          vals[name] =
+            if value.is_a?(Array)
+              value.map { |item| item.is_a?(Hash) ? type.from_wire(item) : item }
+            elsif value.is_a?(Hash)
+              type.from_wire(value)
+            else
+              value
+            end
+        end
         new(**vals)
+      end
+
+      # Members whose value is itself a typed object (or an array of them).
+      # Call with a +{ member => Type }+ hash to declare, without arguments to
+      # read. Members not declared here stay raw wire hashes.
+      def nested(map = nil)
+        @nested_types = map if map
+        @nested_types || {}
+      end
+
+      def nested_types
+        nested
       end
     end
 
@@ -49,3 +72,7 @@ require_relative "types/certificate"
 require_relative "types/webhook"
 require_relative "types/credits"
 require_relative "types/billing"
+require_relative "types/customer"
+require_relative "types/schedule"
+require_relative "types/import"
+require_relative "types/integration"

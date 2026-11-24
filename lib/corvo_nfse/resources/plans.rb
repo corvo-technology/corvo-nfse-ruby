@@ -11,7 +11,7 @@ module CorvoNfse
         @t.list_page("/plans", { limit: limit, cursor: cursor }, mapper: MAPPER)
       end
 
-      # The price of one plan: free, developer, growth, scale or volume.
+      # The price of one plan: free, solo, equipe, empresa or escala.
       def get(slug)
         @t.request("GET", "/plans/#{Util.enc(slug)}", type: Types::PlanQuote)
       end

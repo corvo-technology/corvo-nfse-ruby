@@ -4,7 +4,7 @@ module CorvoNfse
   module Types
     # An NFS-e invoice through its lifecycle.
     Invoice = define_data(
-      :id, :companyId, :tenantId, :environment, :documentKeyVersion,
+      :id, :companyId, :tenantId, :environment,
       :emailSnapshot, :externalId, :idempotencyKey, :status, :customerSnapshot,
       :serviceSnapshot, :taxSnapshot, :amount, :currency, :competenceDate,
       :dpsId, :dpsSeries, :dpsNumber, :accessKey, :nfseNumber, :fiscalProvider,
@@ -16,8 +16,17 @@ module CorvoNfse
       :discount, :deduction,
       # Nil until a cancellation is requested.
       :cancellationReason, :cancellationDescription, :cancelledAt,
-      :cancellationRequestedAt
+      :cancellationRequestedAt,
+      # Set on a substitute invoice / by the national portal.
+      :substitutesInvoiceId, :substitutionDescription, :portalFlag
     )
+
+    # The ten invoice statuses of the contract. Treat +status+ as an open string
+    # anyway: new values can appear.
+    INVOICE_STATUSES = %w[
+      queued processing authorized rejected retry_pending
+      reconciliation_required manual_review failed cancelling cancelled
+    ].freeze
 
     # Outcome of one item of +invoices.create_batch+. +index+ is the item's
     # position in the request (from 0); +status+ is "accepted" (+invoice+ set)
@@ -52,8 +61,24 @@ module CorvoNfse
 
     # A status transition recorded for an invoice.
     InvoiceEvent = define_data(
-      :id, :invoiceId, :fromStatus, :toStatus, :reason, :createdAt
+      :id, :invoiceId, :fromStatus, :toStatus, :reason, :source, :portalEvent,
+      :portalNsu, :createdAt
     )
+
+    # Invoice counters of +GET /invoices/overview+. +counts+ and +dailyActivity+
+    # stay raw wire hashes; +recentInvoices+ are typed.
+    InvoiceOverview = define_data(
+      :period, :from, :to, :timezone, :counts, :dailyActivity, :recentInvoices
+    ) do
+      nested recentInvoices: Invoice
+    end
+
+    # Result of +invoices.review+: +results+ is a list of raw hashes
+    # (+id+, +outcome+ and, when skipped, +reason+).
+    InvoiceReviewResult = define_data(:results)
+
+    # Whether the national NFS-e portal is answering for this environment.
+    PortalStatus = define_data(:available, :environment, :since, :retryAt)
 
     # A time-limited signed download URL for a generated document.
     InvoiceDownloadUrl = define_data(

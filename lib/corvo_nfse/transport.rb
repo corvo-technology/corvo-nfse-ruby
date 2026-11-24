@@ -15,6 +15,7 @@ module CorvoNfse
   class Transport
     DEFAULT_PREFIX = "v1"
     DEFAULT_TIMEOUT = 30
+    USER_AGENT = "corvo-nfse-ruby/#{VERSION}"
 
     attr_reader :base_url
 
@@ -74,23 +75,22 @@ module CorvoNfse
     # RFC 7578 multipart body: a `file` part (with filename + content type) and
     # plain text parts, matching the canonical Node SDK's wire shape.
     def encode_multipart(fields, boundary)
-      body = +""
+      body = String.new(encoding: Encoding::BINARY)
       fields.each do |field|
-        body << "--#{boundary}\r\n"
+        body << "--#{boundary}\r\n".b
         if field.length == 4
           name, content, content_type, filename = field
-          body << %(Content-Disposition: form-data; name="#{name}"; filename="#{filename}"\r\n)
-          body << "Content-Type: #{content_type}\r\n\r\n"
-          body << content.to_s
-          body << "\r\n"
+          body << %(Content-Disposition: form-data; name="#{name}"; filename="#{filename}"\r\n).b
+          body << "Content-Type: #{content_type}\r\n\r\n".b
+          body << content.to_s.b
         else
           name, content = field
-          body << %(Content-Disposition: form-data; name="#{name}"\r\n\r\n)
-          body << content.to_s
-          body << "\r\n"
+          body << %(Content-Disposition: form-data; name="#{name}"\r\n\r\n).b
+          body << content.to_s.b
         end
+        body << "\r\n".b
       end
-      body << "--#{boundary}--\r\n"
+      body << "--#{boundary}--\r\n".b
       body
     end
 
@@ -230,6 +230,7 @@ module CorvoNfse
 
     def apply_headers(req, idempotency_key)
       req["X-API-Key"] = @api_key
+      req["User-Agent"] = USER_AGENT
       req["Accept"] = "application/json"
       req["Idempotency-Key"] = idempotency_key if idempotency_key
     end

@@ -8,7 +8,7 @@ Ruby SDK for the [Corvo](https://corvo.tech) NFS-e API. Register companies, calc
 - **Webhook signature check** in constant time.
 - **No runtime dependencies**: it uses `net/http`, `uri`, `json` and `openssl` from the standard library. Library only, no CLI.
 
-Full API reference: <https://corvo.tech/en/docs>.
+Full API reference: <https://corvo.tech/en/docs>. The machine-readable contract (OpenAPI 3.0, version 0.3.0, 92 operations) is at <https://corvo.tech/openapi.json>; this SDK covers all of it.
 
 ## Installation
 
@@ -98,7 +98,77 @@ raise error if error # CorvoNfse::CorvoApiError is safe to raise
 puts invoice.id
 ```
 
-Use `options: { type: "SCHEDULE" }` with a future `competenceDate` to schedule the issuance. Parameters and response fields use the API's camelCase wire format, unchanged.
+Parameters and response fields use the API's camelCase wire format, unchanged (billing, schedules and imports answer in snake_case, also unchanged).
+
+### Schedule or repeat an invoice
+
+With `options: { type: "SCHEDULE" }` (once) or `"RECURRING"`, `create` returns a `Types::Schedule` instead of an invoice (snake_case fields). The note only exists when the schedule runs (09:00 America/Sao_Paulo, Monday to Friday); `competenceDate` is the date of the first run and must be from tomorrow on.
+
+```ruby
+schedule, error = client.invoices.create(
+  {
+    companyTaxId: "11222333000181",
+    service: { description: "Mensalidade" }, amount: 300, competenceDate: "2026-12-01",
+    options: { type: "RECURRING", recurrence: { frequency: "MONTHLY", endsOn: "2027-06-30" } }
+  }
+)
+puts schedule.next_run_on
+
+client.schedules.pause(schedule.id)
+client.schedules.resume(schedule.id)
+runs, = client.schedules.runs(schedule.id) # every attempt, newest first
+client.schedules.cancel(schedule.id)       # final
+```
+
+### Look up a CNPJ, saved customers and favorite services
+
+```ruby
+profile, error = client.cnpj.lookup("11222333000181") # legalName, situation, simples, address...
+
+page, error = client.customers.search(search: "acme", limit: 20)
+customer, = client.customers.get("11222333000181")
+client.customers.update("11222333000181", name: "Acme S.A.", email: nil)
+client.customers.remove("11222333000181") # issued invoices are not changed
+
+client.service_favorites.create(company.id, label: "Consultoria", description: "Consultoria em TI", serviceCode: "01.01")
+favorites, = client.service_favorites.list(company.id)
+```
+
+### Substitute an invoice and send it to another e-mail
+
+```ruby
+new_invoice, error = client.invoices.substitute(
+  "inv_1", { description: "Corrigindo a descrição do serviço", service: { description: "Consultoria mensal" } },
+  idempotency_key: "sub-inv_1"
+)
+client.invoices.send_email("inv_1", email: "financeiro@cliente.com.br", idempotency_key: "mail-inv_1")
+client.invoices.list(customerTaxId: "52998224725")
+```
+
+### Monthly package for the accountant
+
+```ruby
+client.accountant_package.update(company.id, "contador@exemplo.com.br") # nil turns the monthly send off
+client.accountant_package.send_package(company.id, month: "2026-10")
+sends, = client.accountant_package.list_sends(company.id)
+
+summary, = client.invoice_package.summary(company.id, month: "2026-10")
+zip, = client.invoice_package.download(company.id, month: "2026-10") # xml/, pdf/ and resumo.csv
+File.binwrite("pacote.zip", zip.content)
+```
+
+### Import a spreadsheet
+
+```ruby
+job, error = client.imports.start(File.binread("notas.xlsx"), file_name: "notas.xlsx", company_id: company.id)
+job, = client.imports.get(job.id) until job.status != "processing" # then "ready"
+client.imports.rows(job.id, status: "invalid").first.data.each { |row| puts "#{row.line}: #{row.error_message}" }
+client.imports.update_row(job.id, 3, { amount: 150 })
+client.imports.emit(job.id, send_email: true)
+template, = client.imports.download_template # CSV
+```
+
+Also available: `client.dps_sequence`, `client.fiscal_profiles`, `client.service_tax_profiles`, `client.fiscal_portal`, and the payment-platform integrations (`client.integrations`, `client.integration_connections`, `client.integration_operations`). See the table below.
 
 To declare a deduction from the ISS base, send `deduction:` (greater than 0 and less than `amount` minus `discount`). The invoice is still issued for the full `amount`, and you are responsible for the declared value.
 
@@ -170,7 +240,7 @@ else
 end
 ```
 
-`CorvoNfse::Webhooks::EVENTS` lists the 9 events you can subscribe to. The `webhook.test` event is only sent by `client.webhooks.test`.
+`CorvoNfse::Webhooks::EVENTS` lists the 12 events you can subscribe to (including `nfse.invoice.taker_rejected`). A webhook created with a `corvo_test_` key only receives test events and cannot see live ones; webhook URLs that resolve to private or loopback networks are refused. The `webhook.test` event is only sent by `client.webhooks.test`.
 
 ## Resources
 
@@ -178,14 +248,30 @@ end
 | --- | --- |
 | `client.companies` | `create`, `get`, `update`, `remove`, `list`, `iterate` |
 | `client.certificates` | `upload`, `list`, `remove` |
-| `client.invoices` | `create`, `create_batch`, `calculate`, `get`, `list`, `iterate`, `events`, `pdf`, `xml`, `download_url`, `send_email`, `cancel` |
+| `client.invoices` | `create` (invoice or schedule), `create_batch`, `calculate`, `get`, `list`, `iterate`, `events`, `pdf`, `xml`, `download_url`, `send_email`, `cancel`, `substitute`, `overview`, `review` |
+| `client.schedules` | `list`, `iterate`, `get`, `update`, `pause`, `resume`, `cancel`, `runs`, `iterate_runs` |
+| `client.imports` | `start`, `list`, `get`, `emit`, `rows`, `iterate_rows`, `update_row`, `discard`, `download_template`, `download_errors` |
+| `client.customers` | `search`, `iterate`, `get`, `update`, `remove` |
+| `client.cnpj` | `lookup` |
+| `client.service_favorites` | `list`, `create`, `remove` |
+| `client.accountant_package` | `get`, `update`, `send_package`, `list_sends` |
+| `client.invoice_package` | `summary`, `download` |
+| `client.dps_sequence` | `get`, `set` |
+| `client.fiscal_profiles` | `list`, `upsert`, `approve` |
+| `client.service_tax_profiles` | `list`, `create`, `update`, `remove`, `approve` |
+| `client.fiscal_portal` | `status` |
+| `client.integrations` | `list_providers` |
+| `client.integration_connections` | `list`, `create`, `get`, `validate`, `update_credentials`, `activate`, `pause`, `disconnect`, `list_rules`, `replace_rules`, `list_events`, `list_operations` |
+| `client.integration_operations` | `complete_customer`, `retry` |
 | `client.webhooks` | `list`, `create`, `remove`, `test`, plus `deliveries.list/iterate/stats/retry` |
-| `client.credits` | `balance`, `plans`, `history`, `iterate_history` |
+| `client.credits` | `balance`, `plans`, `history`, `iterate_history`, `preview_purchase` |
 | `client.billing` | `plan`, `usage` |
-| `client.plans` | `list`, `get`, `quote` (public price catalog) |
+| `client.plans` | `list`, `get`, `quote` (public price catalog, outside the contract) |
 | `client.health` | `live`, `ready` |
 
-Changing plans and the billing portal exist only in the dashboard, so they are not in the SDK. Immutable response types live under `CorvoNfse::Types` as `Data` classes whose members mirror the wire format (for example `Types::Invoice#accessKey`).
+Every operationId of the contract maps to one of these methods: the table is in `spec/support_operations.rb` and `spec/contract/operations_spec.rb` fails when `spec/openapi.json` gains an operation the SDK does not implement.
+
+Plans are `free`, `solo`, `equipe`, `empresa` and `escala` (and `self-hosted` on a self-hosted instance); treat the slug as an open string and read the allowance from the plan. Credits are plan notes plus loose notes (`balance`, `planRemaining`, `avulsoBalance`); there is no overage billing, and `credits.preview_purchase(units: 10)` prices a one-off purchase (buying is done in the dashboard). Changing plans and the billing portal exist only in the dashboard, so they are not in the SDK. Immutable response types live under `CorvoNfse::Types` as `Data` classes whose members mirror the wire format (for example `Types::Invoice#accessKey`).
 
 ## Errors
 
@@ -209,10 +295,13 @@ Auth is the `X-API-Key` header. Keys are `corvo_test_...` or `corvo_live_...` an
 
 ```bash
 bundle install
-bundle exec rspec   # the contract spec is pending without env
+bundle exec rspec     # unit tests with mocked HTTP + contract coverage
+bundle exec rubocop   # lint
 ```
 
-The contract spec runs only when `CORVO_API_KEY` and `CORVO_BASE_URL` point to a reachable instance.
+`spec/openapi.json` is a copy of the API contract. To update the SDK after an API change, replace it with the new `openapi.json` and run the specs: the coverage test lists every operation that is not implemented yet.
+
+The live contract spec (`spec/contract/contract_spec.rb`) runs only when `CORVO_API_KEY` and `CORVO_BASE_URL` point to a reachable instance.
 
 ## License
 

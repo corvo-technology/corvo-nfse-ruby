@@ -3,11 +3,11 @@
 module CorvoNfse
   module Types
     # A registered webhook endpoint.
-    Webhook = define_data(:id, :url, :events, :active, :createdAt, :updatedAt)
+    Webhook = define_data(:id, :url, :events, :active, :environment, :createdAt, :updatedAt)
 
     # A webhook as returned once at creation — includes the signing +secret+.
     WebhookWithSecret = define_data(
-      :id, :url, :events, :active, :createdAt, :updatedAt, :secret
+      :id, :url, :events, :active, :environment, :createdAt, :updatedAt, :secret
     )
 
     # One delivery attempt record for a webhook.
