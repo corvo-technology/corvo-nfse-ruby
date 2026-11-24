@@ -13,10 +13,10 @@ RSpec.describe "certificates" do
     expect(error).to be_nil
     expect(data).to be_a(CorvoNfse::Types::Certificate)
     expect(data.id).to eq("cert_1")
-    expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/companies/c_1/certificates").with { |req|
+    expect(WebMock).to(have_requested(:post, "#{BASE_URL}/v1/companies/c_1/certificates").with { |req|
       req.headers["Content-Type"].to_s.start_with?("multipart/form-data") &&
         req.body.include?("P12BYTES") && req.body.include?("secret") && req.body.include?("acme.p12")
-    }
+    })
   end
 
   it "list returns certificates and remove DELETEs the certificate" do

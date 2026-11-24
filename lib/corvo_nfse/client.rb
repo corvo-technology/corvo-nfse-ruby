@@ -13,7 +13,11 @@ module CorvoNfse
     ENV_BASE_URL = "CORVO_BASE_URL"
 
     attr_reader :billing, :certificates, :companies, :credits, :health,
-                :invoices, :plans, :webhooks, :base_url
+                :invoices, :plans, :webhooks, :base_url,
+                :customers, :cnpj, :service_favorites, :accountant_package,
+                :invoice_package, :schedules, :imports, :fiscal_profiles,
+                :service_tax_profiles, :dps_sequence, :fiscal_portal,
+                :integrations, :integration_connections, :integration_operations
 
     def initialize(api_key: nil, base_url: nil, prefix: Transport::DEFAULT_PREFIX,
                    timeout: Transport::DEFAULT_TIMEOUT, allow_insecure_http: false)
@@ -41,6 +45,20 @@ module CorvoNfse
       @invoices = Resources::Invoices.new(@transport)
       @plans = Resources::Plans.new(@transport)
       @webhooks = Resources::Webhooks.new(@transport)
+      @customers = Resources::Customers.new(@transport)
+      @cnpj = Resources::Cnpj.new(@transport)
+      @service_favorites = Resources::ServiceFavorites.new(@transport)
+      @accountant_package = Resources::AccountantPackage.new(@transport)
+      @invoice_package = Resources::InvoicePackage.new(@transport)
+      @schedules = Resources::Schedules.new(@transport)
+      @imports = Resources::Imports.new(@transport)
+      @fiscal_profiles = Resources::FiscalProfiles.new(@transport)
+      @service_tax_profiles = Resources::ServiceTaxProfiles.new(@transport)
+      @dps_sequence = Resources::DpsSequence.new(@transport)
+      @fiscal_portal = Resources::FiscalPortal.new(@transport)
+      @integrations = Resources::Integrations.new(@transport)
+      @integration_connections = Resources::IntegrationConnections.new(@transport)
+      @integration_operations = Resources::IntegrationOperations.new(@transport)
     end
 
     private

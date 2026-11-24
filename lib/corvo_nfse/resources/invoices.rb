@@ -3,18 +3,31 @@
 module CorvoNfse
   module Resources
     # Invoices: create, create_batch, calculate, get, list, iterate, events,
-    # pdf, xml, download_url, send_email, cancel.
+    # pdf, xml, download_url, send_email, cancel, substitute, overview, review.
     class Invoices < Base
       INVOICE_MAPPER = ->(item) { Types::Invoice.from_wire(item) }
       EVENT_MAPPER = ->(item) { Types::InvoiceEvent.from_wire(item) }
 
+      # Issue an invoice, or schedule one.
+      #
+      # With +options.type+ IMMEDIATE (the default) the result is a
+      # Types::Invoice (202, status "queued"). With SCHEDULE or RECURRING it is
+      # a Types::Schedule (snake_case fields): the note only exists when the
+      # schedule runs (09:00 America/Sao_Paulo, Monday to Friday) and
+      # +competenceDate+ is the date of the first run, from tomorrow on. RECURRING
+      # needs +options.recurrence+ ({ frequency: "WEEKLY"|"BIWEEKLY"|"MONTHLY",
+      # endsOn: }). Follow the runs with +schedules.runs+.
       def create(params, idempotency_key: nil)
-        @t.request(
+        data, error = @t.request(
           "POST", "/invoices",
           json: params,
-          idempotency_key: idempotency_key,
-          type: Types::Invoice
+          idempotency_key: idempotency_key
         )
+        return [nil, error] if error
+        return [nil, nil] if data.nil?
+
+        mapped = data.is_a?(Hash) && data.key?("anchor_on") ? Types::Schedule : Types::Invoice
+        [mapped.from_wire(data), nil]
       end
 
       # Issue 1 to 50 invoices in one call, for one company or several.
@@ -45,20 +58,53 @@ module CorvoNfse
         @t.request("GET", "/invoices/#{Util.enc(id)}", type: Types::Invoice)
       end
 
-      def list(companyId: nil, status: nil, from: nil, to: nil, externalId: nil, limit: nil, cursor: nil)
+      # +customerTaxId+ filters by the customer's CPF or CNPJ (digits).
+      def list(companyId: nil, status: nil, from: nil, to: nil, externalId: nil,
+               customerTaxId: nil, limit: nil, cursor: nil)
         query = {
           companyId: companyId, status: status, from: from, to: to,
-          externalId: externalId, limit: limit, cursor: cursor
+          externalId: externalId, customerTaxId: customerTaxId,
+          limit: limit, cursor: cursor
         }
         @t.list_page("/invoices", query, mapper: INVOICE_MAPPER)
       end
 
-      def iterate(companyId: nil, status: nil, from: nil, to: nil, externalId: nil, limit: nil, cursor: nil, &block)
+      def iterate(companyId: nil, status: nil, from: nil, to: nil, externalId: nil,
+                  customerTaxId: nil, limit: nil, cursor: nil, &block)
         query = {
           companyId: companyId, status: status, from: from, to: to,
-          externalId: externalId, limit: limit, cursor: cursor
+          externalId: externalId, customerTaxId: customerTaxId,
+          limit: limit, cursor: cursor
         }
         @t.iterate("/invoices", query, mapper: INVOICE_MAPPER, &block)
+      end
+
+      # Counters and recent invoices of the tenant and environment. +period+
+      # is "7d" (default) or "30d".
+      def overview(period: nil)
+        @t.request("GET", "/invoices/overview", query: { period: period }, type: Types::InvoiceOverview)
+      end
+
+      # Replace an authorized invoice with a corrected one. Only +description+
+      # (why, required), +service.description+, +purchaseOrder+ and +notes+ can
+      # change. The result is the new invoice (202, queued).
+      def substitute(id, params, idempotency_key: nil)
+        @t.request(
+          "POST", "/invoices/#{Util.enc(id)}/substitute",
+          json: params,
+          idempotency_key: idempotency_key,
+          type: Types::Invoice
+        )
+      end
+
+      # Resolve invoices in +manual_review+ (up to 100): +action+ is "retry" or
+      # "discard". The result has one +results+ entry (id, outcome) per invoice.
+      def review(invoice_ids:, action:)
+        @t.request(
+          "POST", "/invoices/review",
+          json: { invoiceIds: invoice_ids, action: action },
+          type: Types::InvoiceReviewResult
+        )
       end
 
       def events(id, limit: nil, cursor: nil)
@@ -104,9 +150,11 @@ module CorvoNfse
         )
       end
 
-      def send_email(id, idempotency_key: nil)
+      # Send the invoice e-mail to the customer, or to +email+ instead.
+      def send_email(id, email: nil, idempotency_key: nil)
         @t.request(
           "POST", "/invoices/#{Util.enc(id)}/email",
+          json: email.nil? ? nil : { email: email },
           idempotency_key: idempotency_key,
           type: Types::InvoiceEmailResult
         )

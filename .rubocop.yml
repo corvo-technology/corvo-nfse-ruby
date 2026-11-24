@@ -1,0 +1,61 @@
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: disable
+  SuggestExtensions: false
+  Exclude:
+    - vendor/**/*
+    - spec/openapi.json
+
+# Lint for real mistakes and basic format; leave taste and size rules off.
+Metrics:
+  Enabled: false
+Style:
+  Enabled: false
+Naming/MethodParameterName:
+  Enabled: false
+Naming/VariableName:
+  Enabled: false
+Naming/MethodName:
+  Enabled: false
+Naming/PredicatePrefix:
+  Enabled: false
+Naming/AccessorMethodName:
+  Enabled: false
+Naming/MemoizedInstanceVariableName:
+  Enabled: false
+Naming/VariableNumber:
+  Enabled: false
+Lint/ConstantDefinitionInBlock:
+  Enabled: false
+Lint/MissingSuper:
+  Enabled: false
+Layout/LineLength:
+  Enabled: false
+Layout/ArgumentAlignment:
+  Enabled: false
+Layout/HashAlignment:
+  Enabled: false
+Layout/FirstHashElementIndentation:
+  Enabled: false
+Layout/MultilineMethodCallIndentation:
+  Enabled: false
+Layout/MultilineOperationIndentation:
+  Enabled: false
+Layout/ParameterAlignment:
+  Enabled: false
+Layout/FirstArgumentIndentation:
+  Enabled: false
+Layout/ArrayAlignment:
+  Enabled: false
+Layout/BlockAlignment:
+  Enabled: false
+Layout/EndAlignment:
+  Enabled: false
+Layout/ElseAlignment:
+  Enabled: false
+Layout/ExtraSpacing:
+  Enabled: false
+Layout/SpaceInsideHashLiteralBraces:
+  Enabled: false
+Lint/ShadowedException:
+  Enabled: false

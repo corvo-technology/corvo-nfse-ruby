@@ -88,8 +88,8 @@ RSpec.describe "invoices" do
     expect(data.results[0].invoice).to be_a(CorvoNfse::Types::Invoice)
     expect(data.results[0].invoice.deduction).to eq(20)
     expect(data.results[1].error["code"]).to eq("ERROR_VALIDATION")
-    expect(WebMock).to have_requested(:post, "#{BASE_URL}/v1/invoices/batches")
-      .with { |req| JSON.parse(req.body)["invoices"][0]["idempotencyKey"] == "sheet-row-2" && !req.headers.key?("Idempotency-Key") }
+    expect(WebMock).to(have_requested(:post, "#{BASE_URL}/v1/invoices/batches")
+      .with { |req| JSON.parse(req.body)["invoices"][0]["idempotencyKey"] == "sheet-row-2" && !req.headers.key?("Idempotency-Key") })
   end
 
   it "cancel posts reason and description and returns the typed invoice" do

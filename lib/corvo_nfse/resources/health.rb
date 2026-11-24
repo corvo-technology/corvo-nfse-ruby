@@ -4,6 +4,7 @@ module CorvoNfse
   module Resources
     # Public health checks (no envelope — the raw body is returned).
     class Health < Base
+      # +GET /health/live+: no key needed, answers +{"status" => "ok", ...}+.
       def live
         @t.request("GET", "/health/live", unwrap: "none")
       end

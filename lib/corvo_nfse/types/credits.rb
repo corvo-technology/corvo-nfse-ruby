@@ -2,12 +2,20 @@
 
 module CorvoNfse
   module Types
-    # Current credit balance for the tenant.
+    # Current credit balance for the tenant. +balance+ is the plan notes left
+    # (+planRemaining+) plus the loose notes bought separately (+avulsoBalance+);
+    # plan notes of a lapsed plan count 0. There is no overage billing.
     CreditBalance = define_data(
-      :tenantId, :balance, :overageUnits, :overageAmountCents, :hardLimit
+      :balance, :planRemaining, :avulsoBalance, :hardLimit
     )
 
-    # A purchasable credit plan.
+    # Price of a one-off purchase of +units+ notes (+GET /credits/purchase/preview+).
+    # Buying is done in the dashboard.
+    PurchasePreview = define_data(:units, :unitPriceCents, :totalCents)
+
+    # A plan (+GET /credits/plans+). +slug+ is an open string (today: free,
+    # self-hosted, solo, equipe, empresa, escala): read the allowances from the
+    # plan instead of hard-coding the list.
     CreditPlan = define_data(
       :id, :slug, :name, :description, :monthlyCreditAllowance, :dailyLimit,
       :maxActiveCompanies,
@@ -24,10 +32,11 @@ module CorvoNfse
       :isReservation, :relatedTransactionId, :createdAt
     )
 
-    # A public price catalog entry (+GET /plans+), prices in centavos.
-    PlanQuote = define_data(
-      :slug, :name, :monthlyAllowance, :basePriceCents, :perCreditOverageCents,
-      :monthlyTotalCents, :currency
+    # A public price of a paid plan (+GET /plans+, +GET /plans/{slug}+), prices
+    # in centavos for the chosen billing cycle.
+    PlanPrice = define_data(
+      :slug, :name, :monthlyAllowance, :basePriceCents, :monthlyEquivalentCents,
+      :chargeTotalCents, :currency
     )
 
     # The plan recommended for a monthly volume (+GET /plans/quote+). The wire

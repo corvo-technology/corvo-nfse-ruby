@@ -21,6 +21,7 @@ module CorvoNfse
       nfse.invoice.fiscal_discrepancy
       nfse.invoice.cancelled
       nfse.invoice.cancellation_rejected
+      nfse.invoice.taker_rejected
     ].freeze
 
     module_function

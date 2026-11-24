@@ -2,13 +2,23 @@
 
 module CorvoNfse
   module Resources
-    # Credits — balance, plans, history, iterate_history.
+    # Credits — balance, plans, history, iterate_history, preview_purchase.
     class Credits < Base
       PLAN_MAPPER = ->(item) { Types::CreditPlan.from_wire(item) }
       TX_MAPPER = ->(item) { Types::CreditTransaction.from_wire(item) }
 
       def balance
         @t.request("GET", "/credits", type: Types::CreditBalance)
+      end
+
+      # Price a one-off purchase of +units+ notes (R$ 0,99 each, at least 3,
+      # whole numbers). Buying is done in the dashboard.
+      def preview_purchase(units:)
+        @t.request(
+          "GET", "/credits/purchase/preview",
+          query: { units: units },
+          type: Types::PurchasePreview
+        )
       end
 
       def plans(limit: nil, cursor: nil)

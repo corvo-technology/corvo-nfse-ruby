@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: rubocop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Lint
+        run: bundle exec rubocop
+
   test:
     name: rspec (Ruby ${{ matrix.ruby }})
     runs-on: ubuntu-latest
@@ -19,8 +31,10 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - name: Run unit + spec suite
+      - name: Run unit + contract coverage suite
         run: bundle exec rspec
+      - name: Build the gem
+        run: gem build corvo-nfse.gemspec
       # Contract tests (spec/contract) auto-skip unless the environment is
       # configured. To run them against a live environment, add a gated job that
       # exports CORVO_API_KEY / CORVO_BASE_URL from repository secrets, e.g.:
